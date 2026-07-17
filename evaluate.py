@@ -6,7 +6,7 @@ from sklearn.metrics import roc_auc_score
 from train import get_device
 from src.models import ResNetCIFAR
 from src.datasets import get_clean_dataloaders, get_shifted_dataloader
-from detection_methods.detectors import (
+from detectors import (
     evaluate_confidence,
     evaluate_temperature_scaled,
     fit_temperature,
@@ -22,8 +22,7 @@ from detection_methods.detectors import (
 )
 from plots import plot_calibration, plot_acc_vs_confidence
 
-# All distribution shifts evaluated, including the additional shifts requested
-# in review: brightness/contrast, rotation, occlusion, and JPEG compression.
+
 SHIFT_TYPES = ["blur", "noise", "brightness_contrast", "rotation", "occlusion", "jpeg"]
 DETECTOR_NAMES = ["confidence", "temp_scaled", "energy", "distance", "mc_dropout",
                   "ood", "mahalanobis"]
@@ -44,7 +43,6 @@ def get_probabilities_and_targets(model, loader, device):
     return np.concatenate(all_probs, axis=0), np.array(all_targets)
 
 
-# 7 failure detectors -> AUROC score per shift
 def run_evaluation(model, train_loader, ood_detector, mahalanobis_params, temperature,
                     shift_type, device):
     """Runs all failure detection evaluations over a specific distribution shift."""
