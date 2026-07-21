@@ -1,31 +1,35 @@
 ## Data Distribution && Model Failure Detection
-
-This repository implements and evaluates seven different failure detection paradigms to predict when a ResNet-18 model will fail under distribution shift on the CIFAR-10 dataset. Six shift types are covered: **blur**, **noise**, **brightness/contrast**, **rotation**, **occlusion**, and **JPEG compression**.
-
+ 
+This repository implements and evaluates seven different failure detection paradigms to predict when a ResNet-18 model will fail under distribution shift on the CIFAR-10 dataset. Six shift types are covered: **blur**, **noise**, **brightness/contrast**, **rotation**, **occlusion**, and **JPEG compression**, each available at 5 severity levels (see "Severity Sweep" below).
+ 
 ## SETUP:
-
+ 
 1: create a virtual environment;
-
-    ```bash
+ 
+```bash
     python3 -m venv venv
     source venv/bin/activate
     pip install -r requirements.txt
-    ```
-
+```
+ 
 2: train the model;
-
+ 
     python train.py
-
+ 
 3: evaluate the detectors;
-
+ 
     python evaluate.py
-
+ 
 4: inspect failures;
-
+ 
     python inspect_failures.py
-
+ 
+5: (optional) sweep shift severity to test early-warning behavior;
+ 
+    python severity_sweep.py
+ 
 ## DETECTION METHODS IMPLEMENTED:
-
+ 
 - **Confidence-Based:** Softmax distribution entropy (single forward pass).
 - **Temperature-Scaled Confidence:** Softmax entropy after calibrating logits with a learned scalar temperature (Guo et al., 2017), fit on clean held-out data.
 - **Energy Score:** Free-energy baseline (Liu et al., 2020), `E(x) = -T · logsumexp(logits / T)`, requiring no extra fitting.
@@ -33,22 +37,24 @@ This repository implements and evaluates seven different failure detection parad
 - **Monte Carlo Dropout:** Predictive entropy averaged over 15 stochastic forward passes.
 - **OOD Anomaly Detection:** Unsupervised One-Class SVM trained on clean, standardized embeddings.
 - **Mahalanobis Distance:** Class-conditional Gaussians fit on clean embeddings (Lee et al., 2018); scored by minimum distance to any class mean.
-
-Each method scores how likely a prediction is to be wrong. `evaluate.py` turns that score into an AUROC against actual model errors, across every shift type.
-
+Each method scores how likely a prediction is to be wrong. `evaluate.py` turns that score into an AUROC against actual model errors, across every shift type, and writes everything to `results/evaluation_results.json` for reproducibility.
+ 
 ## OOD DETECTOR TUNING
-
+ 
 The One-Class SVM detector is the most sensitive to setup, so `evaluate.py` runs two tuning passes before the final evaluation (both validated on the blur shift, held out from the reported results):
-
-- **Layer comparison:** embeddings are compared across `layer2`, `layer3`, and the final pooled layer, since intermediate features may separate shifted data better than the final representation.
-- **Hyperparameter sweep:** a grid search over `nu`, `gamma`, and `kernel` on the best-performing layer.
-
+ 
+- **Layer comparison:** embeddings are compared across `layer2`, `layer3`, and the final pooled layer, since intermediate features may separate shifted data better than the final representation. See `plots/ocsvm_layer_comparison.png`.
+- **Hyperparameter sweep:** a grid search over `nu`, `gamma`, and `kernel` on the best-performing layer. See `plots/ocsvm_hyperparam_sweep.png`.
 The winning layer/hyperparameter combination is used to train the OOD detector reported in the results table below.
-
+ 
+## SEVERITY SWEEP (early-warning test)
+ 
+`severity_sweep.py` answers the practical monitoring question directly: **can the OOD/energy score flag degradation before accuracy drops substantially?** Each shift type is applied at 5 increasing severity levels (parameters in `SEVERITY_PARAMS`, `src/datasets.py`); at each level we record clean-model accuracy alongside the mean OOD and energy scores, then plot all three together in `plots/severity_curves.png`. A shift where the score axis rises well before the accuracy axis drops indicates the detector can serve as an early warning signal, ahead of an observable accuracy loss; a shift where they move in lockstep indicates the score is only reacting to failures already happening in real time. Results are also saved to `results/severity_sweep.json`.
+ 
 ## Results
-
-AUROC for detecting actual model errors, per method, per shift (0.5 = random, 1.0 = perfect). Run `python evaluate.py` to regenerate this table:
-
+ 
+AUROC for detecting actual model errors, per method, per shift (0.5 = random, 1.0 = perfect). Run `python evaluate.py` to regenerate this table (it is also printed to the console and written to `results/evaluation_results.json`):
+ 
 | Shift               | Confidence | Temp-Scaled | Energy | Distance | MC Dropout | OOD (SVM) | Mahalanobis |
 |---------------------|:----------:|:-----------:|:------:|:--------:|:----------:|:---------:|:-----------:|
 | Blur                |            |             |        |          |            |           |             |
@@ -57,10 +63,24 @@ AUROC for detecting actual model errors, per method, per shift (0.5 = random, 1.
 | Rotation            |            |             |        |          |            |           |             |
 | Occlusion           |            |             |        |          |            |           |             |
 | JPEG                |            |             |        |          |            |           |             |
-
+ 
+A summary bar chart across all methods and shifts is saved to `plots/auroc_summary.png`.
+ 
 ## Additional Failure Inspection
-
-In the 4th step we highlight the core focus of this repository-
+ 
+In the 4th step we highlight the core focus of this repository -
 Here are examples of images where our ResNet-18 model was highly confident, but completely wrong due to distribution shifts:
-
+ 
 ![Confident Failures Gallery](plots/confident_failures.png)
+ 
+## Plots generated by this pipeline
+ 
+All plots are written under `plots/` (created automatically if it doesn't exist):
+ 
+- `calibration_<shift>.png`, `calibration_clean.png` — reliability diagrams
+- `acc_vs_conf_<shift>.png`, `acc_vs_conf_clean.png` — accuracy-vs-confidence bar charts
+- `ocsvm_layer_comparison.png` — OCSVM AUROC by embedding layer
+- `ocsvm_hyperparam_sweep.png` — OCSVM AUROC heatmap over nu/gamma/kernel
+- `auroc_summary.png` — grouped bar chart of every detector's AUROC across every shift
+- `severity_curves.png` — accuracy vs. OOD/energy score across shift severity (early-warning test)
+- `confident_failures.png` — gallery of the most confident incorrect predictions
