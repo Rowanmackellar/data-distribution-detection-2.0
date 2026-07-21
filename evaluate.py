@@ -153,7 +153,15 @@ if __name__ == "__main__":
     device = get_device()
 
     model = ResNetCIFAR().to(device)
-    model.load_state_dict(torch.load("models/checkpoints/resnet18_best.pt", map_location=device))
+    checkpoint = "models/checkpoints/resnet18_best.pt"
+
+if not os.path.exists(checkpoint):
+    raise FileNotFoundError(
+        "No trained model checkpoint found.\n"
+        "Run `python train.py` before running evaluate.py."
+    )
+
+model.load_state_dict(torch.load(checkpoint, map_location=device))
     model.eval()
 
     print("Loading clean data...")
