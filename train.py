@@ -65,4 +65,7 @@ if __name__ == "__main__":
             print(f"--> New best accuracy achieved ({acc:.3%})! Checkpoint updated.")
             
     writer.close()
-    print("Training finished successfully.")
+print("\nTraining finished successfully.")
+print(f"Best training accuracy: {best_acc:.3%}")
+print("Checkpoint saved to:")
+print("models/checkpoints/resnet18_best.pt")
