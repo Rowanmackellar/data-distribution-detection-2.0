@@ -22,7 +22,6 @@ class AddGaussianNoise:
 
 
 class BrightnessContrast:
-    """Pushes brightness and contrast away from the training distribution."""
     def __init__(self, brightness_factor=1.6, contrast_factor=1.6):
         self.brightness_factor = brightness_factor
         self.contrast_factor = contrast_factor
@@ -30,7 +29,7 @@ class BrightnessContrast:
         import torchvision.transforms.functional as F
         img = F.adjust_brightness(img, self.brightness_factor)
         img = F.adjust_contrast(img, self.contrast_factor)
-        return img
+        return torch.clamp(img, 0.0, 1.0)
 
 
 class Rotation:
