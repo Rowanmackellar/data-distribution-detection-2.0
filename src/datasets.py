@@ -84,22 +84,43 @@ def get_clean_dataloaders(data_dir="data/raw", batch_size=128):
             DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=NUM_WORKERS))
 
 
-def get_shifted_dataloader(shift_type="blur", data_dir="data/raw", batch_size=128):
+def get_shifted_dataloader(shift_type="blur", severity=1, data_dir="data/raw", batch_size=128):
+    """
+    Returns a DataLoader for a specific distribution shift and severity level (1..5).
+    """
     norm = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))
     
+    # Define severity maps for each shift type (levels 1 through 5)
     if shift_type == "blur":
-        tfs = transforms.Compose([transforms.ToTensor(), GaussianBlur(), norm])
+        # Kernel size must remain odd: [3, 5, 7, 9, 11]
+        kernel_sizes = [3, 5, 7, 9, 11]
+        sigmas = [0.5, 1.5, 2.5, 3.5, 4.5]
+        k = kernel_sizes[severity - 1]
+        sig = sigmas[severity - 1]
+        tfs = transforms.Compose([transforms.ToTensor(), GaussianBlur(kernel_size=k, sigma=sig), norm])
+
     elif shift_type == "noise":
-        tfs = transforms.Compose([transforms.ToTensor(), AddGaussianNoise(), norm])
+        stds = [0.05, 0.10, 0.15, 0.20, 0.25]
+        tfs = transforms.Compose([transforms.ToTensor(), AddGaussianNoise(std=stds[severity - 1]), norm])
+
     elif shift_type == "brightness_contrast":
-        tfs = transforms.Compose([transforms.ToTensor(), BrightnessContrast(), norm])
+        factors = [1.2, 1.4, 1.6, 1.8, 2.0]
+        f = factors[severity - 1]
+        tfs = transforms.Compose([transforms.ToTensor(), BrightnessContrast(brightness_factor=f, contrast_factor=f), norm])
+
     elif shift_type == "rotation":
-        tfs = transforms.Compose([transforms.ToTensor(), Rotation(), norm])
+        degrees = [15, 30, 45, 60, 75]
+        tfs = transforms.Compose([transforms.ToTensor(), Rotation(degrees=degrees[severity - 1]), norm])
+
     elif shift_type == "occlusion":
-        tfs = transforms.Compose([transforms.ToTensor(), Occlusion(), norm])
+        patch_sizes = [4, 8, 12, 16, 20]
+        tfs = transforms.Compose([transforms.ToTensor(), Occlusion(patch_size=patch_sizes[severity - 1]), norm])
+
     elif shift_type == "jpeg":
-        # JPEGCompression needs a PIL image, so it runs before ToTensor()
-        tfs = transforms.Compose([JPEGCompression(), transforms.ToTensor(), norm])
+        # Lower quality value = higher compression artifact severity
+        qualities = [50, 35, 20, 10, 5]
+        tfs = transforms.Compose([JPEGCompression(quality=qualities[severity - 1]), transforms.ToTensor(), norm])
+
     else:
         raise ValueError(f"Unknown shift: {shift_type}")
         
