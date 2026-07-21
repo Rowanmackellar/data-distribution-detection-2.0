@@ -29,12 +29,12 @@ The repository evaluates seven complementary approaches.
 | Method | Description |
 |---------|-------------|
 | Confidence | Softmax entropy from a single forward pass |
-| Temperature Scaling | Entropy after logit calibration (Guo et al., 2017) |
-| Energy Score | Free-energy score (Liu et al., 2020) |
+| Temperature Scaling | Entropy after logit calibration |
+| Energy Score | Free-energy score |
 | Embedding Distance | Mean k-NN distance in feature space |
 | Monte Carlo Dropout | Predictive entropy from multiple stochastic passes |
 | One-Class SVM | Unsupervised anomaly detector trained on clean embeddings |
-| Mahalanobis Distance | Class-conditional Gaussian distance (Lee et al., 2018) |
+| Mahalanobis Distance | Class-conditional Gaussian distance |
 
 Each detector produces a score estimating how likely a prediction is to be incorrect. Performance is reported using **AUROC** against the classifier's actual errors.
 
