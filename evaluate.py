@@ -276,4 +276,3 @@ if __name__ == "__main__":
     print("Markdown table for the README:\n")
     print(results_to_markdown_table(all_results))
 
-```
