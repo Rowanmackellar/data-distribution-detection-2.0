@@ -76,10 +76,6 @@ The One-Class SVM detector is the most sensitive to setup, so `evaluate.py` runs
 - **Hyperparameter sweep:** a grid search over `nu`, `gamma`, and `kernel` on the best-performing layer. See `plots/ocsvm_hyperparam_sweep.png`.
 The winning layer/hyperparameter combination is used to train the OOD detector reported in the results table below.
  
-## SEVERITY SWEEP (early-warning test)
- 
-`severity_sweep.py` answers the practical monitoring question directly: **can the OOD/energy score flag degradation before accuracy drops substantially?** Each shift type is applied at 5 increasing severity levels (parameters in `SEVERITY_PARAMS`, `src/datasets.py`); at each level we record clean-model accuracy alongside the mean OOD and energy scores, then plot all three together in `plots/severity_curves.png`. A shift where the score axis rises well before the accuracy axis drops indicates the detector can serve as an early warning signal, ahead of an observable accuracy loss; a shift where they move in lockstep indicates the score is only reacting to failures already happening in real time. Results are also saved to `results/severity_sweep.json`.
- 
 ## Results
  
 AUROC for detecting actual model errors, per method, per shift (0.5 = random, 1.0 = perfect). Run `python evaluate.py` to regenerate this table (it is also printed to the console and written to `results/evaluation_results.json`):
@@ -104,5 +100,4 @@ All plots are written under `plots/` (created automatically if it doesn't exist)
 - `ocsvm_layer_comparison.png` — OCSVM AUROC by embedding layer
 - `ocsvm_hyperparam_sweep.png` — OCSVM AUROC heatmap over nu/gamma/kernel
 - `auroc_summary.png` — grouped bar chart of every detector's AUROC across every shift
-- `severity_curves.png` — accuracy vs. OOD/energy score across shift severity (early-warning test)
 - `confident_failures.png` — gallery of the most confident incorrect predictions
